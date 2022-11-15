@@ -5,7 +5,7 @@ const options = {
    hideNotReady: true,
    hidePlaying: true,
    hideQueuing: true,
-   outputDebuggingMessages: true,
+   outputDebuggingMessages: false,
 };
 
 // On page load, restores state using the options stored in chrome.storage.

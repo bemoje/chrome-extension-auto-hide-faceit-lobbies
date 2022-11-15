@@ -33,7 +33,7 @@ window.addEventListener('load', () => {
       hideNotReady: true,
       hidePlaying: true,
       hideQueuing: true,
-      outputDebuggingMessages: true,
+      outputDebuggingMessages: false,
    };
 
    // console outputs debuggning message if enabled
