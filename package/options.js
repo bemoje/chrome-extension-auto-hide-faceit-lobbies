@@ -1,41 +1,40 @@
-// option defaults
-const defaults = {
-   ahfl_hideNotJoinable: true,
-   ahfl_hideNotReady: true,
-   ahfl_hidePlaying: true,
-   ahfl_hideQueuing: true,
-   ahfl_enabledOnPageLoad: true,
-   ahfl_outputDebuggingMessages: false,
+// user options set to their defaults
+const options = {
+   enabled: true,
+   hideNotJoinable: true,
+   hideNotReady: true,
+   hidePlaying: true,
+   hideQueuing: true,
+   outputDebuggingMessages: true,
 };
 
 // On page load, restores state using the options stored in chrome.storage.
-document.addEventListener('DOMContentLoaded',() => {
-   chrome.storage.sync.get(defaults,(items) => {
-      document.getElementById('hideNotJoinable').checked = items.ahfl_hideNotJoinable;
-      document.getElementById('hideNotReady').checked = items.ahfl_hideNotReady;
-      document.getElementById('hidePlaying').checked = items.ahfl_hidePlaying;
-      document.getElementById('hideQueuing').checked = items.ahfl_hideQueuing;
-      document.getElementById('enabledOnPageLoad').checked = items.ahfl_enabledOnPageLoad;
-      document.getElementById('outputDebuggingMessages').checked = items.ahfl_outputDebuggingMessages;
+document.addEventListener('DOMContentLoaded', () => {
+   chrome.storage.sync.get(options, (items) => {
+      for (let key in items) {
+         document.getElementById(key).checked = items.enabled;
+      }
    });
-});
-
-// On 'save' button click, save options to chrome.storage
-document.getElementById('save').addEventListener('click',() => {
-   const options = {
-      ahfl_hideNotJoinable: document.getElementById('hideNotJoinable').checked,
-      ahfl_hideNotReady: document.getElementById('hideNotReady').checked,
-      ahfl_hidePlaying: document.getElementById('hidePlaying').checked,
-      ahfl_hideQueuing: document.getElementById('hideQueuing').checked,
-      ahfl_enabledOnPageLoad: document.getElementById('enabledOnPageLoad').checked,
-      ahfl_outputDebuggingMessages: document.getElementById('outputDebuggingMessages').checked,
-   };
-   chrome.storage.sync.set(options,() => {
-      // Update status to let user know options were saved.
-      const status = document.getElementById('status');
-      status.textContent = 'Options saved. Please reload (F5) the faceit page for changes to take effect.';
-      setTimeout(() => {
-         status.textContent = '';
-      },750);
+   // add option change event listeners to each checkbox that immediately persist option changes
+   for (const key in options) {
+      document.getElementById(key).addEventListener('change', (event) => {
+         options[key] = event.target.checked;
+         chrome.storage.sync.set({options}, () => {
+            // Update status to let user know changes were saved.
+            const status = document.getElementById('status');
+            status.textContent = 'Changes saved.';
+            setTimeout(() => {
+               status.textContent = '';
+            }, 750);
+         });
+      });
+   }
+   // if enabled state is changes in the application, automatically set/remove checkmark for 'enabled'.
+   chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'sync' && changes.options?.newValue) {
+         changes = changes.options.newValue;
+         options.enabled = changes.enabled;
+         document.getElementById('enabled').checked = options.enabled;
+      }
    });
 });

@@ -7,6 +7,12 @@
 
 <body>
    <label>
+      <input type="checkbox" id="enabled">
+      Enable extension
+   </label>
+   <br />
+
+   <label>
       <input type="checkbox" id="hideNotJoinable">
       Hide "Not joinable" lobbies.
    </label>
@@ -31,19 +37,12 @@
    <br />
 
    <label>
-      <input type="checkbox" id="enabledOnPageLoad">
-      Enabled on page load
-   </label>
-   <br />
-
-   <label>
       <input type="checkbox" id="outputDebuggingMessages">
-      Output information to browser console for debuggning purposes.
+      Enable debugging messages to console.
    </label>
    <br />
 
    <div id="status"></div>
-   <button id="save">Save</button>
 
    <script src="options.js"></script>
 </body>
