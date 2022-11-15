@@ -11,6 +11,19 @@
    let hidePlaying = true;
    let hideQueuing = true;
    let enabledOnPageLoad = true;
+   let outputDebuggingMessages = false;
+
+   // console outputs debuggning message if enabled
+   const debug = (message) => {
+      const source = 'AHFL debugging output';
+      if (outputDebuggingMessages) {
+         if (typeof message !== 'object') {
+            message = {message};
+         }
+         message['source'] = source;
+         console.log(message);
+      }
+   };
 
    // rate at which hide/show updates (milliseconds)
    const REFRESH_RATE_MS = 3000;
@@ -23,7 +36,8 @@
       NOT_JOINABLE: 'Not joinable',
       NOT_READY: 'Not ready',
       PLAYING: 'Playing',
-      QUEUING: 'Queuing'
+      QUEUING: 'Queuing',
+      READY: 'Ready'
    };
 
    /**
@@ -67,7 +81,6 @@
       const LOBBY_CLASS_NAME = (function () {
          const count = {};
          const searchStrings = Object.values(STATUS);
-         searchStrings.push('Ready');
          const spanElements = document.getElementsByTagName("span");
          for (const span of spanElements) {
             for (const str of searchStrings) {
@@ -85,26 +98,26 @@
                   }
                   // update count
                   const className = lobby.getAttribute('class');
-                  if (Number.isInteger(count[ className ])) {
-                     count[ className ]++;
+                  if (Number.isInteger(count[className])) {
+                     count[className]++;
                   } else {
-                     count[ className ] = 1;
+                     count[className] = 1;
                   }
-                  //console.log({ inner: span.innerHTML });
+                  debug({spanInnerHTML: span.innerHTML});
                   break;
                }
             }
          }
          // return class name with most occurances
-         const max = { className: "",count: 0 };
+         const max = {className: "", count: 0};
          for (const className in count) {
-            if (count[ className ] >= max.count) {
+            if (count[className] >= max.count) {
                max.className = className;
-               max.count = count[ className ];
+               max.count = count[className];
             }
          }
-         //console.log(count);
-         // console.log(max);
+         debug({count});
+         debug({max});
          return max.className;
       })();
 
@@ -114,8 +127,8 @@
        * @param {string} status - a STATUS enum value
        * @return {boolean}
        */
-      function lobbyHasStatusOf (lobby,status) {
-         return lobby.getElementsByClassName(STATUS_CLASS_NAME)[ 0 ].innerHTML === status;
+      function lobbyHasStatusOf (lobby, status) {
+         return lobby.getElementsByClassName(STATUS_CLASS_NAME)[0].innerHTML === status;
       }
 
       /**
@@ -125,10 +138,10 @@
       function hideLobbies () {
          for (const lobby of document.getElementsByClassName(LOBBY_CLASS_NAME)) {
             if (
-               (hideNotJoinable && lobbyHasStatusOf(lobby,STATUS.NOT_JOINABLE)) ||
-               (hideNotReady && lobbyHasStatusOf(lobby,STATUS.NOT_READY)) ||
-               (hidePlaying && lobbyHasStatusOf(lobby,STATUS.PLAYING)) ||
-               (hideQueuing && lobbyHasStatusOf(lobby,STATUS.QUEUING))
+               (hideNotJoinable && lobbyHasStatusOf(lobby, STATUS.NOT_JOINABLE)) ||
+               (hideNotReady && lobbyHasStatusOf(lobby, STATUS.NOT_READY)) ||
+               (hidePlaying && lobbyHasStatusOf(lobby, STATUS.PLAYING)) ||
+               (hideQueuing && lobbyHasStatusOf(lobby, STATUS.QUEUING))
             ) {
                // store lobby element and a copy of its original style.display value
                hiddenLobbies.push(new HiddenLobby(lobby));
@@ -161,26 +174,28 @@
             'ahfl_hideNotReady',
             'ahfl_hidePlaying',
             'ahfl_hideQueuing',
-            'ahfl_enabledOnPageLoad'
-         ],(options) => {
+            'ahfl_enabledOnPageLoad',
+            'ahfl_outputDebuggingMessages'
+         ], (options) => {
             // override default user options
             if (options.ahfl_hideNotJoinable !== undefined) hideNotJoinable = options.ahfl_hideNotJoinable;
             if (options.ahfl_hideNotReady !== undefined) hideNotReady = options.ahfl_hideNotReady;
             if (options.ahfl_hidePlaying !== undefined) hidePlaying = options.ahfl_hidePlaying;
             if (options.ahfl_hideQueuing !== undefined) hideQueuing = options.ahfl_hideQueuing;
             if (options.ahfl_enabledOnPageLoad !== undefined) enabledOnPageLoad = options.ahfl_enabledOnPageLoad;
-            //console.log({ hideNotJoinable,hideNotReady,hidePlaying,hideQueuing,enabledOnPageLoad });
+            if (options.ahfl_outputDebuggingMessages !== undefined) outputDebuggingMessages = options.ahfl_outputDebuggingMessages;
+            debug({userOptionsLoadedFromChromeStorage: {hideNotJoinable, hideNotReady, hidePlaying, hideQueuing, enabledOnPageLoad, outputDebuggingMessages}});
          });
 
          // keyboard event listeners
-         window.addEventListener('keydown',(event) => {
+         window.addEventListener('keydown', (event) => {
             if (event.key === 'Shift') {
                // 'SHIFT' key pressed
                shiftKeyDown = true;
             }
          });
 
-         window.addEventListener('keyup',(event) => {
+         window.addEventListener('keyup', (event) => {
             if (event.key === 'Shift') {
                // 'SHIFT' key released
                shiftKeyDown = false;
@@ -188,12 +203,12 @@
                // 'SHIFT + HOME' key combination registered
                hideLobbies();
                hideEnabled = true;
-               //console.log(hiddenLobbies.length + ' lobbies were hidden.');
+               debug(hiddenLobbies.length + ' lobbies were hidden.');
             } else if (shiftKeyDown && event.key === 'End') {
                // 'SHIFT + END' key combination registered
                hideEnabled = false;
                unhideLobbies();
-               //console.log('Showing all lobbies.');
+               debug('Showing all lobbies.');
             }
          });
 
@@ -203,16 +218,16 @@
                unhideLobbies();
                hideLobbies();
             }
-         },REFRESH_RATE_MS);
+         }, REFRESH_RATE_MS);
 
          // hide lobbies on page load if enabled
          if (enabledOnPageLoad) {
             window.setTimeout(() => {
                hideLobbies();
                hideEnabled = true;
-               //console.log(hiddenLobbies.length + ' lobbies were hidden.');
-            },500);
+               debug(hiddenLobbies.length + ' lobbies were hidden.');
+            }, 500);
          }
       })();
-   },AWAIT_DOM_LOAD_MS);
+   }, AWAIT_DOM_LOAD_MS);
 })();

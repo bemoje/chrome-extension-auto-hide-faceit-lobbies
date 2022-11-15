@@ -5,6 +5,7 @@ const defaults = {
    ahfl_hidePlaying: true,
    ahfl_hideQueuing: true,
    ahfl_enabledOnPageLoad: true,
+   ahfl_outputDebuggingMessages: false,
 };
 
 // On page load, restores state using the options stored in chrome.storage.
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded',() => {
       document.getElementById('hidePlaying').checked = items.ahfl_hidePlaying;
       document.getElementById('hideQueuing').checked = items.ahfl_hideQueuing;
       document.getElementById('enabledOnPageLoad').checked = items.ahfl_enabledOnPageLoad;
+      document.getElementById('outputDebuggingMessages').checked = items.ahfl_outputDebuggingMessages;
    });
 });
 
@@ -26,11 +28,12 @@ document.getElementById('save').addEventListener('click',() => {
       ahfl_hidePlaying: document.getElementById('hidePlaying').checked,
       ahfl_hideQueuing: document.getElementById('hideQueuing').checked,
       ahfl_enabledOnPageLoad: document.getElementById('enabledOnPageLoad').checked,
+      ahfl_outputDebuggingMessages: document.getElementById('outputDebuggingMessages').checked,
    };
    chrome.storage.sync.set(options,() => {
       // Update status to let user know options were saved.
       const status = document.getElementById('status');
-      status.textContent = 'Options saved. Reload (F5) faceit page.';
+      status.textContent = 'Options saved. Please reload (F5) the faceit page for changes to take effect.';
       setTimeout(() => {
          status.textContent = '';
       },750);
