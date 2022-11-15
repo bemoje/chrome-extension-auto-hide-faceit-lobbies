@@ -1,0 +1,20 @@
+{
+   "manifest_version": 3,
+   "name": "Auto Hide Faceit Lobbies",
+   "version": "1.0.1",
+   "description": "Automatically hide lobbies without status 'Ready'. Enable/disable with 'SHIFT+HOME' and 'SHIFT+END'. Also See the extension options.",
+   "content_scripts": [
+      {
+         "js": [
+            "content.js"
+         ],
+         "matches": [
+            "https://www.faceit.com/en/clan/*"
+         ]
+      }
+   ],
+   "options_page": "options.html",
+   "permissions": [
+      "storage"
+   ]
+}
