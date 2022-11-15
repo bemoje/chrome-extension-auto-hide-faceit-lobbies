@@ -80,7 +80,7 @@ window.addEventListener('load', () => {
       }
    };
 
-   const findLobbyElementFromStatusElement = (status, spanElements) => {
+   const findLobbyElementFromStatus = (status) => {
       // the 8x grandparent of the span element matching the search will be the lobby element
       let lobby = status.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement;
       // Sometimes the lobby element is found some levels higher (8x grandparent or more) in the DOM tree.
@@ -93,7 +93,7 @@ window.addEventListener('load', () => {
       return lobby;
    };
 
-   const maxOccuringClassName = (count) => {
+   const mostOccuringClassName = (count) => {
       const result = {className: "", count: 0};
       for (const className in count) {
          if (count[className] >= result.count) {
@@ -115,30 +115,28 @@ window.addEventListener('load', () => {
       const searchStrings = Object.values(STATUS);
       const spanElements = document.getElementsByTagName("span");
 
-      for (const status of spanElements) {
+      for (const statusElement of spanElements) {
          for (const str of searchStrings) {
-            if (status.innerHTML === str) {
-               // count span element class names
-               incrementClassCount(countStatus, status);
-               // count lobby element class names
-               incrementClassCount(countLobbies, findLobbyElementFromStatusElement(status, spanElements));
-               debug({spanInnerHTML: status.innerHTML});
+            if (statusElement.innerHTML === str) {
+               incrementClassCount(countStatus, statusElement);
+               incrementClassCount(countLobbies, findLobbyElementFromStatus(statusElement));
+               debug({"statusElement.innerHTML": statusElement.innerHTML});
                break;
             }
          }
       }
 
-      const maxStatus = maxOccuringClassName(countStatus);
-      const maxLobby = maxOccuringClassName(countLobbies);
+      const maxStatus = mostOccuringClassName(countStatus);
+      const maxLobby = mostOccuringClassName(countLobbies);
 
-      if (maxStatus.count >= 2 && maxLobby.count >= 2) {
-         // override enum values for CLASS_NAMES.STATUS only if any were found
+      if (maxStatus.count >= 3 && maxLobby.count >= 3) {
+         // override enum values for CLASS_NAMES.STATUS only if 3 or more were found
          CLASS_NAMES.STATUS = maxStatus.className;
          CLASS_NAMES.LOBBY = maxLobby.className;
          initializeSuccessful = true;
          debug({CLASS_NAMES, countStatus, countLobbies});
       } else {
-         // if no span elements were found, we cannot initialize the application. Retry in 3 seconds.
+         // if no span elements were found, we cannot initialize the application. Retry in 1 second.
          window.setTimeout(() => {
             debug({"maxStatus.count": maxStatus.count, "maxLobby.count": maxLobby.count});
             initializeClassNames();
@@ -146,15 +144,16 @@ window.addEventListener('load', () => {
       }
    }
 
+   // Determines whether a given lobby html element has a given status
+   const lobbyHasStatusOf = (lobby, status) => {
+      return lobby.getElementsByClassName(CLASS_NAMES.STATUS)[0].innerHTML === status;
+   };
+
    /**
     * Hide all lobbies based on user options
     * @return {void}
     */
    function hideLobbies () {
-      //Determines whether a given lobby html element has a given status
-      const lobbyHasStatusOf = (lobby, status) => {
-         return lobby.getElementsByClassName(CLASS_NAMES.STATUS)[0].innerHTML === status;
-      };
       // hide lobbies
       for (const lobby of document.getElementsByClassName(CLASS_NAMES.LOBBY)) {
          if (
@@ -165,7 +164,6 @@ window.addEventListener('load', () => {
          ) {
             // store lobby element and a copy of its original style.display value
             hiddenLobbies.push(new HiddenLobby(lobby));
-
             // hide lobby
             lobby.style.display = 'none';
          }
