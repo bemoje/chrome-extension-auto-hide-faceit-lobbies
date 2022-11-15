@@ -1,10 +1,7 @@
 // after page load, run inside the scope of an immediately invoked function to avoid polluting the global namespace
 window.addEventListener('load', () => {
-   // assumed appropriate delay until dom has loaded (milliseconds)
-   const AWAIT_DOM_LOAD_MS = 3805;
-
    // rate at which hide/show updates (milliseconds)
-   const REFRESH_RATE_MS = 3000;
+   const REFRESH_RATE_MS = 1500;
 
    // lobby status enum
    const STATUS = {
@@ -17,7 +14,7 @@ window.addEventListener('load', () => {
 
    // html class name enum (values set/overidden when application initializes)
    const CLASS_NAMES = {
-      STATUS: 'sc-igsHvH bAyDlA',
+      STATUS: undefined,
       LOBBY: undefined
    };
 
@@ -74,201 +71,199 @@ window.addEventListener('load', () => {
       }
    }
 
-   // start application after a delay
-   window.setTimeout(() => {
-      /**
-       * Finds status- and lobby html element class names. faceit obfuscates and sometimes change the class names. We can
-       * determine the html class name of lobby elements by finding some text strings inside span elements that we know
-       * must originate from inside a lobby element.
-       */
-      function initializeClassNames () {
-         const incrementClassCount = (count, element) => {
-            const className = element.getAttribute('class');
-            if (Number.isInteger(count[className])) {
-               count[className]++;
-            } else {
-               count[className] = 1;
-            }
-         };
+   const incrementClassCount = (count, element) => {
+      const className = element.getAttribute('class');
+      if (Number.isInteger(count[className])) {
+         count[className]++;
+      } else {
+         count[className] = 1;
+      }
+   };
 
-         const findLobbyElementFromStatusElement = (status, spanElements) => {
-            // the 8x grandparent of the span element matching the search will be the lobby element
-            let lobby = status.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement;
-            // Sometimes the lobby element is found some levels higher (8x grandparent or more) in the DOM tree.
-            // We know that the parent of the lobby element has many child elements, and that lobby elements
-            // children many levels down only have a single child element. We can use this to identify the lobby
-            // element.
-            if (spanElements.length > 1) {
-               while (lobby.parentElement.childNodes.length === 1) {
-                  lobby = lobby.parentElement;
-               }
-            }
-            return lobby;
-         };
+   const findLobbyElementFromStatusElement = (status, spanElements) => {
+      // the 8x grandparent of the span element matching the search will be the lobby element
+      let lobby = status.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement;
+      // Sometimes the lobby element is found some levels higher (8x grandparent or more) in the DOM tree.
+      // We know that the parent of the lobby element has many child elements, and that lobby elements
+      // children many levels down only have a single child element. We can use this to identify the lobby
+      // element.
+      while (lobby.parentElement.childNodes.length === 1) {
+         lobby = lobby.parentElement;
+      }
+      return lobby;
+   };
 
-         const maxOccuringClassName = (count) => {
-            const result = {className: "", count: 0};
-            for (const className in count) {
-               if (count[className] >= result.count) {
-                  result.className = className;
-                  result.count = count[className];
-               }
-            }
-            return result;
-         };
-
-         // determine class names
-         const countStatus = {};
-         const countLobbies = {};
-         const searchStrings = Object.values(STATUS);
-         const spanElements = document.getElementsByTagName("span");
-         if (spanElements.length > 0) {
-            for (const status of spanElements) {
-               for (const str of searchStrings) {
-                  if (status.innerHTML === str) {
-                     // count span element class names
-                     incrementClassCount(countStatus, status);
-                     // count lobby element class names
-                     incrementClassCount(countLobbies, findLobbyElementFromStatusElement(status, spanElements));
-                     debug({spanInnerHTML: status.innerHTML});
-                     break;
-                  }
-               }
-            }
-            const maxStatus = maxOccuringClassName(countStatus);
-            const maxLobby = maxOccuringClassName(countLobbies);
-            // override enum values for CLASS_NAMES.STATUS only if any were found
-            CLASS_NAMES.STATUS = maxStatus.className;
-            CLASS_NAMES.LOBBY = maxLobby.className;
-            initializeSuccessful = true;
-            debug({CLASS_NAMES, countStatus, countLobbies});
-         } else {
-            // if no span elements were found, we cannot initialize the application. Retry in 3 seconds.
-            window.setTimeout(() => {
-               initializeClassNames();
-            }, 3000);
+   const maxOccuringClassName = (count) => {
+      const result = {className: "", count: 0};
+      for (const className in count) {
+         if (count[className] >= result.count) {
+            result.className = className;
+            result.count = count[className];
          }
       }
+      return result;
+   };
 
-      /**
-       * Hide all lobbies based on user options
-       * @return {void}
-       */
-      function hideLobbies () {
-         //Determines whether a given lobby html element has a given status
-         const lobbyHasStatusOf = (lobby, status) => {
-            return lobby.getElementsByClassName(CLASS_NAMES.STATUS)[0].innerHTML === status;
-         };
-         // hide lobbies
-         for (const lobby of document.getElementsByClassName(CLASS_NAMES.LOBBY)) {
-            if (
-               (options.hideNotJoinable && lobbyHasStatusOf(lobby, STATUS.NOT_JOINABLE)) ||
-               (options.hideNotReady && lobbyHasStatusOf(lobby, STATUS.NOT_READY)) ||
-               (options.hidePlaying && lobbyHasStatusOf(lobby, STATUS.PLAYING)) ||
-               (options.hideQueuing && lobbyHasStatusOf(lobby, STATUS.QUEUING))
-            ) {
-               // store lobby element and a copy of its original style.display value
-               hiddenLobbies.push(new HiddenLobby(lobby));
+   /**
+    * Finds status- and lobby html element class names. faceit obfuscates and sometimes change the class names. We can
+    * determine the html class name of lobby elements by finding some text strings inside span elements that we know
+    * must originate from inside a lobby element.
+    */
+   function initializeClassNames () {
+      const countStatus = {};
+      const countLobbies = {};
+      const searchStrings = Object.values(STATUS);
+      const spanElements = document.getElementsByTagName("span");
 
-               // hide lobby
-               lobby.style.display = 'none';
+      for (const status of spanElements) {
+         for (const str of searchStrings) {
+            if (status.innerHTML === str) {
+               // count span element class names
+               incrementClassCount(countStatus, status);
+               // count lobby element class names
+               incrementClassCount(countLobbies, findLobbyElementFromStatusElement(status, spanElements));
+               debug({spanInnerHTML: status.innerHTML});
+               break;
             }
          }
       }
 
-      /**
-       * Unhide all previously hidden lobbies
-       * @return {void}
-       */
-      function unhideLobbies () {
-         for (const hiddenLobby of hiddenLobbies) {
-            hiddenLobby.unhide();
+      const maxStatus = maxOccuringClassName(countStatus);
+      const maxLobby = maxOccuringClassName(countLobbies);
+
+      if (maxStatus.count >= 2 && maxLobby.count >= 2) {
+         // override enum values for CLASS_NAMES.STATUS only if any were found
+         CLASS_NAMES.STATUS = maxStatus.className;
+         CLASS_NAMES.LOBBY = maxLobby.className;
+         initializeSuccessful = true;
+         debug({CLASS_NAMES, countStatus, countLobbies});
+      } else {
+         // if no span elements were found, we cannot initialize the application. Retry in 3 seconds.
+         window.setTimeout(() => {
+            debug({"maxStatus.count": maxStatus.count, "maxLobby.count": maxLobby.count});
+            initializeClassNames();
+         }, 1000);
+      }
+   }
+
+   /**
+    * Hide all lobbies based on user options
+    * @return {void}
+    */
+   function hideLobbies () {
+      //Determines whether a given lobby html element has a given status
+      const lobbyHasStatusOf = (lobby, status) => {
+         return lobby.getElementsByClassName(CLASS_NAMES.STATUS)[0].innerHTML === status;
+      };
+      // hide lobbies
+      for (const lobby of document.getElementsByClassName(CLASS_NAMES.LOBBY)) {
+         if (
+            (options.hideNotJoinable && lobbyHasStatusOf(lobby, STATUS.NOT_JOINABLE)) ||
+            (options.hideNotReady && lobbyHasStatusOf(lobby, STATUS.NOT_READY)) ||
+            (options.hidePlaying && lobbyHasStatusOf(lobby, STATUS.PLAYING)) ||
+            (options.hideQueuing && lobbyHasStatusOf(lobby, STATUS.QUEUING))
+         ) {
+            // store lobby element and a copy of its original style.display value
+            hiddenLobbies.push(new HiddenLobby(lobby));
+
+            // hide lobby
+            lobby.style.display = 'none';
          }
-         hiddenLobbies = [];
       }
+   }
 
-      /**
-       * Enables or disables the extension and stores this preference to chrome.storage so enabled status is remembered
-       * whenever the page reloads.
-       * @param {boolean} enabled - Whether to enable or disable the extension
-       * @return {void}
-       */
-      function setEnabled (enabled) {
-         options.enabled = enabled;
-         // Save enabled status in chrome.storage (synchronous)
-         chrome.storage.sync.set({options}, () => {
-            debug({chromeStorageSaveResult: 'success', enabled: options.enabled});
-         });
+   /**
+    * Unhide all previously hidden lobbies
+    * @return {void}
+    */
+   function unhideLobbies () {
+      for (const hiddenLobby of hiddenLobbies) {
+         hiddenLobby.unhide();
       }
+      hiddenLobbies = [];
+   }
 
-      /**
-       * Initializes the application. Invoked immediately.
-       * @return {void}
-       */
-      (function initialize () {
-         initializeClassNames();
+   /**
+    * Enables or disables the extension and stores this preference to chrome.storage so enabled status is remembered
+    * whenever the page reloads.
+    * @param {boolean} enabled - Whether to enable or disable the extension
+    * @return {void}
+    */
+   function setEnabled (enabled) {
+      options.enabled = enabled;
+      // Save enabled status in chrome.storage (synchronous)
+      chrome.storage.sync.set({options}, () => {
+         debug({chromeStorageSaveResult: 'success', enabled: options.enabled});
+      });
+   }
 
-         // load extension user options from chrome.storage (synchronous)
-         chrome.storage.sync.get('options', (data) => {
-            // override default user options
-            Object.assign(options, data.options);
-            debug({chromeStorageGet: data.options});
-         });
+   /**
+    * Initializes the application. Invoked immediately.
+    * @return {void}
+    */
+   (function initialize () {
+      initializeClassNames();
 
-         // if user changes options on options page, update application state
-         chrome.storage.onChanged.addListener((changes, area) => {
-            if (area === 'sync' && changes.options?.newValue) {
-               Object.assign(options, changes.options.newValue);
-               debug({chromeStorageChange: changes.options.newValue});
-            }
-         });
+      // load extension user options from chrome.storage (synchronous)
+      chrome.storage.sync.get('options', (data) => {
+         // override default user options
+         Object.assign(options, data.options);
+         debug({chromeStorageGet: data.options});
+      });
 
-         // keyboard event listeners
-         window.addEventListener('keydown', (event) => {
-            if (event.key === 'Shift') {
-               // 'SHIFT' key pressed
-               shiftKeyDown = true;
-            }
-         });
+      // if user changes options on options page, update application state
+      chrome.storage.onChanged.addListener((changes, area) => {
+         if (area === 'sync' && changes.options?.newValue) {
+            Object.assign(options, changes.options.newValue);
+            debug({chromeStorageChange: changes.options.newValue});
+         }
+      });
 
-         window.addEventListener('keyup', (event) => {
-            if (event.key === 'Shift') {
-               // 'SHIFT' key released
-               shiftKeyDown = false;
-            } else if (shiftKeyDown && event.key === 'Home') {
-               // 'SHIFT + HOME' key combination registered. Toggle enabled on/off
-               if (initializeSuccessful) {
-                  if (options.enabled) {
-                     // disable
-                     setEnabled(false);
-                     unhideLobbies();
-                     debug('Showing all lobbies.');
-                  } else {
-                     // enable
-                     hideLobbies();
-                     setEnabled(true);
-                     debug(hiddenLobbies.length + ' lobbies were hidden.');
-                  }
-               } else {
-                  debug('Application not yet initialized successfully due to missing lobbies.');
-               }
-            }
-         });
+      // keyboard event listeners
+      window.addEventListener('keydown', (event) => {
+         if (event.key === 'Shift') {
+            // 'SHIFT' key pressed
+            shiftKeyDown = true;
+         }
+      });
 
-         // auto-refresh on a time interval in case lobby status changes
-         window.setInterval(() => {
+      window.addEventListener('keyup', (event) => {
+         if (event.key === 'Shift') {
+            // 'SHIFT' key released
+            shiftKeyDown = false;
+         } else if (shiftKeyDown && event.key === 'Home') {
+            // 'SHIFT + HOME' key combination registered. Toggle enabled on/off
             if (initializeSuccessful) {
                if (options.enabled) {
+                  // disable
+                  setEnabled(false);
                   unhideLobbies();
-                  hideLobbies();
-                  debug('Refreshed show/hide state. ' + hiddenLobbies.length + ' lobbies are hidden.');
+                  debug('Showing all lobbies.');
                } else {
-                  unhideLobbies();
+                  // enable
+                  hideLobbies();
+                  setEnabled(true);
+                  debug(hiddenLobbies.length + ' lobbies were hidden.');
                }
             } else {
                debug('Application not yet initialized successfully due to missing lobbies.');
             }
-         }, REFRESH_RATE_MS);
-      })();
-   }, AWAIT_DOM_LOAD_MS);
+         }
+      });
+
+      // auto-refresh on a time interval in case lobby status changes
+      window.setInterval(() => {
+         if (initializeSuccessful) {
+            if (options.enabled) {
+               unhideLobbies();
+               hideLobbies();
+               debug('Refreshed show/hide state. ' + hiddenLobbies.length + ' lobbies are hidden.');
+            } else {
+               unhideLobbies();
+            }
+         } else {
+            debug('Application not yet initialized successfully due to missing lobbies.');
+         }
+      }, REFRESH_RATE_MS);
+   })();
 });
